@@ -7,6 +7,7 @@ import {
 } from '@/lib/data';
 import ExerciseModal from '@/components/ExerciseModal';
 import Report from '@/components/Report';
+import AbsTracker from '@/components/AbsTracker';
 
 export default function Home() {
   const [state, setState] = useState<AppState>({ currentWeek: 0, currentDay: 0, dayData: {} });
@@ -15,6 +16,7 @@ export default function Home() {
   const [showReport, setShowReport] = useState(false);
   const [selectedPain, setSelectedPain] = useState<number | null>(null);
   const [note, setNote] = useState('');
+  const [activeTab, setActiveTab] = useState<'knee' | 'abs'>('knee');
 
   useEffect(() => {
     const s = loadState();
@@ -107,6 +109,29 @@ export default function Home() {
 
   if (!hydrated) return null;
   if (showReport) return <Report state={state} onBack={() => setShowReport(false)} />;
+  if (activeTab === 'abs') return (
+    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+      <div className="max-w-2xl mx-auto px-4 pt-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <p className="mono text-xs" style={{ color: '#818cf8', letterSpacing: '0.1em' }}>16-WEEK ABS PROTOCOL</p>
+            <h1 className="text-2xl font-medium mt-1">Ab Tracker</h1>
+          </div>
+        </div>
+        <div className="flex gap-2 mb-6 p-1 rounded-xl" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+          <button onClick={() => setActiveTab('knee')} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
+            style={{ background: 'transparent', color: 'var(--text-muted)', border: 'none', cursor: 'pointer' }}>
+            🦵 Knee Rehab
+          </button>
+          <button className="flex-1 py-2 rounded-lg text-sm font-medium"
+            style={{ background: '#6366f1', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            💪 Abs
+          </button>
+        </div>
+      </div>
+      <AbsTracker />
+    </div>
+  );
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
@@ -115,7 +140,28 @@ export default function Home() {
 
       <div className="max-w-2xl mx-auto px-4 py-8">
         {/* Top bar */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <p className="mono text-xs" style={{ color: 'var(--teal)', letterSpacing: '0.1em' }}>HEMOPHILIA A — RIGHT KNEE PROTOCOL</p>
+            <h1 className="text-2xl font-medium mt-1" style={{ color: 'var(--text)' }}>Rehab Tracker</h1>
+          </div>
+          <button className="btn-ghost flex items-center gap-2 text-sm" onClick={() => setShowReport(true)}>
+            <BarChart2 size={15} />
+            Report
+          </button>
+        </div>
+
+        {/* Tab switcher */}
+        <div className="flex gap-2 mb-6 p-1 rounded-xl" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+          <button className="flex-1 py-2 rounded-lg text-sm font-medium"
+            style={{ background: 'var(--teal)', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            🦵 Knee Rehab
+          </button>
+          <button onClick={() => setActiveTab('abs')} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
+            style={{ background: 'transparent', color: 'var(--text-muted)', border: 'none', cursor: 'pointer' }}>
+            💪 Abs
+          </button>
+        </div>
           <div>
             <p className="mono text-xs" style={{ color: 'var(--teal)', letterSpacing: '0.1em' }}>HEMOPHILIA A — RIGHT KNEE PROTOCOL</p>
             <h1 className="text-2xl font-medium mt-1" style={{ color: 'var(--text)' }}>Rehab Tracker</h1>
