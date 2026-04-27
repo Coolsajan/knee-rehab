@@ -110,29 +110,36 @@ export default function Home() {
   if (!hydrated) return null;
   if (showReport) return <Report state={state} onBack={() => setShowReport(false)} />;
 
-  if (activeTab === 'abs') return (
-    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
-      <div className="max-w-2xl mx-auto px-4 pt-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <p className="mono text-xs" style={{ color: '#818cf8', letterSpacing: '0.1em' }}>16-WEEK ABS PROTOCOL</p>
-            <h1 className="text-2xl font-medium mt-1">Ab Tracker</h1>
+  if (activeTab === 'abs') {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+        <div className="max-w-2xl mx-auto px-4 pt-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <p className="mono text-xs" style={{ color: '#818cf8', letterSpacing: '0.1em' }}>16-WEEK ABS PROTOCOL</p>
+              <h1 className="text-2xl font-medium mt-1">Ab Tracker</h1>
+            </div>
+          </div>
+          <div className="flex gap-2 mb-6 p-1 rounded-xl" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+            <button 
+              onClick={() => setActiveTab('knee')} 
+              className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
+              style={{ background: 'transparent', color: 'var(--text-muted)', border: 'none', cursor: 'pointer' }}
+            >
+              🦵 Knee Rehab
+            </button>
+            <button 
+              className="flex-1 py-2 rounded-lg text-sm font-medium"
+              style={{ background: '#6366f1', color: '#fff', border: 'none', cursor: 'pointer' }}
+            >
+              💪 Abs
+            </button>
           </div>
         </div>
-        <div className="flex gap-2 mb-6 p-1 rounded-xl" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
-          <button onClick={() => setActiveTab('knee')} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
-            style={{ background: 'transparent', color: 'var(--text-muted)', border: 'none', cursor: 'pointer' }}>
-            🦵 Knee Rehab
-          </button>
-          <button className="flex-1 py-2 rounded-lg text-sm font-medium"
-            style={{ background: '#6366f1', color: '#fff', border: 'none', cursor: 'pointer' }}>
-            💪 Abs
-          </button>
-        </div>
+        <AbsTracker />
       </div>
-      <AbsTracker />
-    </div>
-  );
+    );
+  }
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
