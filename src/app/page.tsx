@@ -140,7 +140,6 @@ export default function Home() {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
       {/* Modal */}
