@@ -1,4 +1,5 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import { AlertTriangle, Info, BarChart2, CheckCircle, SkipForward, ChevronRight } from 'lucide-react';
 import {
@@ -44,7 +45,7 @@ export default function Home() {
       dayData: {
         ...state.dayData,
         [dk]: {
-          ...currentDayData,
+          ...(currentDayData || {}),
           exercises: {
             ...(currentDayData.exercises || {}),
             [key]: !(currentDayData.exercises?.[key]),
@@ -109,33 +110,35 @@ export default function Home() {
 
   if (!hydrated) return null;
   if (showReport) return <Report state={state} onBack={() => setShowReport(false)} />;
-  if (activeTab === 'abs') return (
-    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
-      <div className="max-w-2xl mx-auto px-4 pt-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <p className="mono text-xs" style={{ color: '#818cf8', letterSpacing: '0.1em' }}>16-WEEK ABS PROTOCOL</p>
-            <h1 className="text-2xl font-medium mt-1">Ab Tracker</h1>
+
+  if (activeTab === 'abs') {
+    return (
+      <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+        <div className="max-w-2xl mx-auto px-4 pt-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <p className="mono text-xs" style={{ color: '#818cf8', letterSpacing: '0.1em' }}>16-WEEK ABS PROTOCOL</p>
+              <h1 className="text-2xl font-medium mt-1">Ab Tracker</h1>
+            </div>
+          </div>
+          <div className="flex gap-2 mb-6 p-1 rounded-xl" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+            <button onClick={() => setActiveTab('knee')} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
+              style={{ background: 'transparent', color: 'var(--text-muted)', border: 'none', cursor: 'pointer' }}>
+              🦵 Knee Rehab
+            </button>
+            <button className="flex-1 py-2 rounded-lg text-sm font-medium"
+              style={{ background: '#6366f1', color: '#fff', border: 'none', cursor: 'pointer' }}>
+              💪 Abs
+            </button>
           </div>
         </div>
-        <div className="flex gap-2 mb-6 p-1 rounded-xl" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
-          <button onClick={() => setActiveTab('knee')} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
-            style={{ background: 'transparent', color: 'var(--text-muted)', border: 'none', cursor: 'pointer' }}>
-            🦵 Knee Rehab
-          </button>
-          <button className="flex-1 py-2 rounded-lg text-sm font-medium"
-            style={{ background: '#6366f1', color: '#fff', border: 'none', cursor: 'pointer' }}>
-            💪 Abs
-          </button>
-        </div>
+        <AbsTracker />
       </div>
-      <AbsTracker />
-    </div>
-  );
+    );
+  }
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
-      {/* Modal */}
       {modalExercise && <ExerciseModal exercise={modalExercise} onClose={() => setModalEx(null)} />}
 
       <div className="max-w-2xl mx-auto px-4 py-8">
@@ -160,18 +163,6 @@ export default function Home() {
           <button onClick={() => setActiveTab('abs')} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
             style={{ background: 'transparent', color: 'var(--text-muted)', border: 'none', cursor: 'pointer' }}>
             💪 Abs
-          </button>
-        </div>
-          <div>
-            <p className="mono text-xs" style={{ color: 'var(--teal)', letterSpacing: '0.1em' }}>HEMOPHILIA A — RIGHT KNEE PROTOCOL</p>
-            <h1 className="text-2xl font-medium mt-1" style={{ color: 'var(--text)' }}>Rehab Tracker</h1>
-          </div>
-          <button
-            className="btn-ghost flex items-center gap-2 text-sm"
-            onClick={() => setShowReport(true)}
-          >
-            <BarChart2 size={15} />
-            Report
           </button>
         </div>
 
@@ -208,7 +199,7 @@ export default function Home() {
         {/* Week tabs */}
         <div className="flex gap-2 mb-4 flex-wrap">
           {[0, 1, 2, 3].map(w => {
-            const weekDone = [0,1,2,3,4,5,6].every(d => state.dayData[dayKey(w,d)]?.status === 'done');
+            const weekDone = [0, 1, 2, 3, 4, 5, 6].every(d => state.dayData[dayKey(w, d)]?.status === 'done');
             const isActive = w === state.currentWeek;
             return (
               <button
@@ -265,7 +256,7 @@ export default function Home() {
           <div className="p-3 rounded-lg mb-5 flex gap-3 items-start animate-in" style={{ background: '#FCEBEB15', border: '1px solid rgba(226,75,74,0.4)' }}>
             <AlertTriangle size={14} style={{ color: '#E24B4A', flexShrink: 0, marginTop: 1 }} />
             <p className="text-sm leading-relaxed" style={{ color: '#E24B4A' }}>
-              Pain ≥7 detected. <strong>Stop immediately.</strong> Rest, monitor for swelling. If the joint swells, contact your hematologist — this may indicate a hemarthrosis bleed.
+              Pain ≥7 detected. <strong>Stop immediately.</strong> Rest, monitor for swelling. If the joint swells, contact your hematologist.
             </p>
           </div>
         )}
@@ -285,7 +276,6 @@ export default function Home() {
                 }}
                 onClick={() => toggleEx(ex.key)}
               >
-                {/* Checkbox */}
                 <div
                   className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
                   style={{
@@ -301,7 +291,6 @@ export default function Home() {
                   <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{ex.sets}</p>
                 </div>
 
-                {/* Tutorial button */}
                 <button
                   className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs transition-all flex-shrink-0"
                   style={{ background: 'var(--bg3)', border: '1px solid var(--border)', color: 'var(--teal)' }}
@@ -345,7 +334,6 @@ export default function Home() {
             background: 'var(--bg2)',
             border: '1px solid var(--border)',
             color: 'var(--text)',
-            fontFamily: 'DM Sans, sans-serif',
             minHeight: 80,
             outline: 'none',
           }}
