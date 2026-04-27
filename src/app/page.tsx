@@ -1,27 +1,17 @@
 'use client';
-
 import { useState, useEffect } from 'react';
-import { BarChart2, CheckCircle, SkipForward } from 'lucide-react';
+import { AlertTriangle, Info, BarChart2, CheckCircle, SkipForward, ChevronRight } from 'lucide-react';
 import {
-  EXERCISES,
-  AppState,
-  DayData,
-  loadState,
-  saveState,
-  calcStats,
-  dayKey,
+  EXERCISES, WEEK_GUIDANCE, AppState, DayData,
+  loadState, saveState, calcStats, dayKey,
 } from '@/lib/data';
 import ExerciseModal from '@/components/ExerciseModal';
 import Report from '@/components/Report';
 import AbsTracker from '@/components/AbsTracker';
 
-export default function Home() {
-  const [state, setState] = useState<AppState>({
-    currentWeek: 0,
-    currentDay: 0,
-    dayData: {},
-  });
 
+export default function Home() {
+  const [state, setState] = useState<AppState>({ currentWeek: 0, currentDay: 0, dayData: {} });
   const [hydrated, setHydrated] = useState(false);
   const [modalEx, setModalEx] = useState<string | null>(null);
   const [showReport, setShowReport] = useState(false);
@@ -30,29 +20,35 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'knee' | 'abs'>('knee');
 
   useEffect(() => {
-    const saved = loadState();
-    setState(saved);
+    const s = loadState();
+    setState(s);
     setHydrated(true);
   }, []);
 
   const dk = dayKey(state.currentWeek, state.currentDay);
-  const today: DayData = state.dayData[dk] || {};
+  const currentDayData: DayData = state.dayData[dk] || {};
+
+  useEffect(() => {
+    if (!hydrated) return;
+    setSelectedPain(currentDayData.pain ?? null);
+    setNote(currentDayData.note ?? '');
+  }, [state.currentWeek, state.currentDay, hydrated]);
 
   const update = (newState: AppState) => {
     setState(newState);
     saveState(newState);
   };
 
-  const toggleExercise = (key: string) => {
+  const toggleEx = (key: string) => {
     const updated = {
       ...state,
       dayData: {
         ...state.dayData,
         [dk]: {
-          ...today,
+          ...currentDayData,
           exercises: {
-            ...(today.exercises || {}),
-            [key]: !(today.exercises?.[key]),
+            ...(currentDayData.exercises || {}),
+            [key]: !(currentDayData.exercises?.[key]),
           },
         },
       },
@@ -60,14 +56,34 @@ export default function Home() {
     update(updated);
   };
 
-  const completeDay = () => {
-    const updated: AppState = {
+  const setPain = (val: number) => {
+    setSelectedPain(val);
+    const updated = {
       ...state,
-      currentDay: state.currentDay + 1,
       dayData: {
         ...state.dayData,
-        [dk]: { ...today, status: 'done', pain: selectedPain ?? undefined, note },
+        [dk]: { ...currentDayData, pain: val },
       },
+    };
+    update(updated);
+  };
+
+  const completeDay = () => {
+    const newDayData: DayData = {
+      ...currentDayData,
+      status: 'done',
+      note,
+      pain: selectedPain ?? undefined,
+      completedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    };
+    let nextWeek = state.currentWeek;
+    let nextDay = state.currentDay;
+    if (state.currentDay < 6) nextDay++;
+    else if (state.currentWeek < 3) { nextWeek++; nextDay = 0; }
+    const updated: AppState = {
+      currentWeek: nextWeek,
+      currentDay: nextDay,
+      dayData: { ...state.dayData, [dk]: newDayData },
     };
     update(updated);
     setSelectedPain(null);
@@ -75,88 +91,282 @@ export default function Home() {
   };
 
   const skipDay = () => {
+    const newDayData: DayData = { ...currentDayData, status: 'skip', note };
+    let nextDay = state.currentDay < 6 ? state.currentDay + 1 : state.currentDay;
     const updated: AppState = {
       ...state,
-      currentDay: state.currentDay + 1,
-      dayData: { ...state.dayData, [dk]: { ...today, status: 'skip' } },
+      currentDay: nextDay,
+      dayData: { ...state.dayData, [dk]: newDayData },
     };
     update(updated);
+    setNote('');
   };
 
   const stats = calcStats(state.dayData);
   const progress = Math.round((stats.totalDone / 28) * 100);
+  const exDone = EXERCISES.filter(e => currentDayData.exercises?.[e.key]).length;
+  const highPain = selectedPain !== null && selectedPain >= 7;
   const modalExercise = modalEx ? EXERCISES.find(e => e.key === modalEx) : null;
 
   if (!hydrated) return null;
   if (showReport) return <Report state={state} onBack={() => setShowReport(false)} />;
-
-  // ABS TAB
-  if (activeTab === 'abs') {
-    return (
-      <div className="min-h-screen p-6 max-w-2xl mx-auto">
-        <div className="flex gap-2 mb-6">
-          <button onClick={() => setActiveTab('knee')}>🦵 Knee Rehab</button>
-          <button>💪 Abs</button>
-        </div>
-        <AbsTracker />
-      </div>
-    );
-  }
-
-  // KNEE TAB
-  return (
-    <div className="min-h-screen p-6 max-w-2xl mx-auto">
-      {modalExercise && (
-        <ExerciseModal exercise={modalExercise} onClose={() => setModalEx(null)} />
-      )}
-
-      <div className="flex justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Rehab Tracker</h1>
-          <p>
-            Week {state.currentWeek + 1} • Day {state.currentDay + 1}
-          </p>
-        </div>
-        <button onClick={() => setShowReport(true)} className="flex gap-2 items-center">
-          <BarChart2 size={16} /> Report
-        </button>
-      </div>
-
-      <div className="flex gap-2 mb-6">
-        <button>🦵 Knee Rehab</button>
-        <button onClick={() => setActiveTab('abs')}>💪 Abs</button>
-      </div>
-
-      <p className="mb-2">Progress {progress}%</p>
-      <div className="w-full bg-gray-200 h-3 rounded mb-6">
-        <div className="bg-green-500 h-3 rounded" style={{ width: `${progress}%` }} />
-      </div>
-
-      <div className="space-y-3 mb-6">
-        {EXERCISES.map(ex => (
-          <div key={ex.key} className="flex justify-between border p-3 rounded">
-            <span>{ex.name}</span>
-            <button onClick={() => toggleExercise(ex.key)}>
-              <CheckCircle />
-            </button>
+  if (activeTab === 'abs') return (
+    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+      <div className="max-w-2xl mx-auto px-4 pt-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <p className="mono text-xs" style={{ color: '#818cf8', letterSpacing: '0.1em' }}>16-WEEK ABS PROTOCOL</p>
+            <h1 className="text-2xl font-medium mt-1">Ab Tracker</h1>
           </div>
-        ))}
+        </div>
+        <div className="flex gap-2 mb-6 p-1 rounded-xl" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+          <button onClick={() => setActiveTab('knee')} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
+            style={{ background: 'transparent', color: 'var(--text-muted)', border: 'none', cursor: 'pointer' }}>
+            🦵 Knee Rehab
+          </button>
+          <button className="flex-1 py-2 rounded-lg text-sm font-medium"
+            style={{ background: '#6366f1', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            💪 Abs
+          </button>
+        </div>
       </div>
+      <AbsTracker />
+    </div>
+  );
 
-      <textarea
-        placeholder="Notes..."
-        value={note}
-        onChange={e => setNote(e.target.value)}
-        className="w-full border p-2 mb-6"
-      />
+  return (
+    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+      {/* Modal */}
+      {modalExercise && <ExerciseModal exercise={modalExercise} onClose={() => setModalEx(null)} />}
 
-      <div className="flex gap-4">
-        <button onClick={completeDay} className="flex gap-2 items-center border px-4 py-2">
-          <CheckCircle size={16} /> Complete
-        </button>
-        <button onClick={skipDay} className="flex gap-2 items-center border px-4 py-2">
-          <SkipForward size={16} /> Skip
-        </button>
+      <div className="max-w-2xl mx-auto px-4 py-8">
+      {/* Top bar */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <p className="mono text-xs" style={{ color: 'var(--teal)', letterSpacing: '0.1em' }}>HEMOPHILIA A — RIGHT KNEE PROTOCOL</p>
+            <h1 className="text-2xl font-medium mt-1" style={{ color: 'var(--text)' }}>Rehab Tracker</h1>
+          </div>
+          <button className="btn-ghost flex items-center gap-2 text-sm" onClick={() => setShowReport(true)}>
+            <BarChart2 size={15} />
+            Report
+          </button>
+        </div>
+
+        {/* Tab switcher */}
+        <div className="flex gap-2 mb-6 p-1 rounded-xl" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+          <button className="flex-1 py-2 rounded-lg text-sm font-medium"
+            style={{ background: 'var(--teal)', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            🦵 Knee Rehab
+          </button>
+          <button onClick={() => setActiveTab('abs')} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
+            style={{ background: 'transparent', color: 'var(--text-muted)', border: 'none', cursor: 'pointer' }}>
+            💪 Abs
+          </button>
+        </div>
+
+        {/* Progress bar */}
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{stats.totalDone} of 28 sessions done</span>
+            <span className="mono text-sm font-medium" style={{ color: 'var(--teal)' }}>{progress}%</span>
+          </div>
+          <div className="h-1.5 rounded-full" style={{ background: 'var(--bg3)' }}>
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${progress}%`, background: 'linear-gradient(90deg, var(--teal), #5DCAA5)' }}
+            />
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          {[
+            { label: 'streak', value: stats.streak, unit: 'days' },
+            { label: 'avg pain', value: stats.avgPain ?? '—', unit: '/10' },
+            { label: "today's ex", value: `${exDone}/${EXERCISES.length}`, unit: 'done' },
+          ].map((s, i) => (
+            <div key={i} className="card p-3 text-center">
+              <div className="mono text-xs mb-1" style={{ color: 'var(--text-dim)', letterSpacing: '0.05em' }}>{s.label.toUpperCase()}</div>
+              <div className="text-xl font-medium" style={{ color: 'var(--text)' }}>
+                {s.value}<span className="text-sm ml-0.5" style={{ color: 'var(--text-dim)' }}>{s.unit}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Week tabs */}
+        <div className="flex gap-2 mb-4 flex-wrap">
+          {[0, 1, 2, 3].map(w => {
+            const weekDone = [0,1,2,3,4,5,6].every(d => state.dayData[dayKey(w,d)]?.status === 'done');
+            const isActive = w === state.currentWeek;
+            return (
+              <button
+                key={w}
+                onClick={() => update({ ...state, currentWeek: w, currentDay: 0 })}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                style={{
+                  background: isActive ? 'rgba(29,158,117,0.15)' : 'var(--bg2)',
+                  border: `1px solid ${isActive ? 'var(--teal)' : weekDone ? 'rgba(29,158,117,0.4)' : 'var(--border)'}`,
+                  color: isActive ? 'var(--teal)' : weekDone ? '#5DCAA5' : 'var(--text-muted)',
+                }}
+              >
+                W{w + 1} {weekDone && '✓'}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Week guidance */}
+        <div className="p-3 rounded-lg mb-5 flex gap-3 items-start" style={{ background: 'rgba(29,158,117,0.06)', border: '1px solid var(--border)' }}>
+          <Info size={14} style={{ color: 'var(--teal)', flexShrink: 0, marginTop: 1 }} />
+          <div>
+            <p className="text-sm font-medium mb-0.5" style={{ color: 'var(--teal)' }}>{WEEK_GUIDANCE[state.currentWeek].focus}</p>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>{WEEK_GUIDANCE[state.currentWeek].detail}</p>
+          </div>
+        </div>
+
+        {/* Day selector */}
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {[0, 1, 2, 3, 4, 5, 6].map(d => {
+            const dk2 = dayKey(state.currentWeek, d);
+            const data = state.dayData[dk2];
+            const isActive = d === state.currentDay;
+            return (
+              <button
+                key={d}
+                onClick={() => update({ ...state, currentDay: d })}
+                className="w-10 h-10 rounded-lg text-xs font-medium mono transition-all"
+                style={{
+                  background: isActive ? 'var(--teal)' : data?.status === 'done' ? 'rgba(29,158,117,0.15)' : data?.status === 'skip' ? 'var(--bg3)' : 'var(--bg2)',
+                  border: `1px solid ${isActive ? 'var(--teal)' : data?.status === 'done' ? 'rgba(29,158,117,0.4)' : 'var(--border)'}`,
+                  color: isActive ? '#fff' : data?.status === 'done' ? '#5DCAA5' : data?.status === 'skip' ? 'var(--text-dim)' : 'var(--text-muted)',
+                  textDecoration: data?.status === 'skip' ? 'line-through' : 'none',
+                }}
+              >
+                D{d + 1}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* High pain warning */}
+        {highPain && (
+          <div className="p-3 rounded-lg mb-5 flex gap-3 items-start animate-in" style={{ background: '#FCEBEB15', border: '1px solid rgba(226,75,74,0.4)' }}>
+            <AlertTriangle size={14} style={{ color: '#E24B4A', flexShrink: 0, marginTop: 1 }} />
+            <p className="text-sm leading-relaxed" style={{ color: '#E24B4A' }}>
+              Pain ≥7 detected. <strong>Stop immediately.</strong> Rest, monitor for swelling. If the joint swells, contact your hematologist — this may indicate a hemarthrosis bleed.
+            </p>
+          </div>
+        )}
+
+        {/* Exercises */}
+        <p className="mono text-xs mb-3" style={{ color: 'var(--text-dim)', letterSpacing: '0.08em' }}>TODAY&apos;S EXERCISES</p>
+        <div className="flex flex-col gap-3 mb-6">
+          {EXERCISES.map(ex => {
+            const done = currentDayData.exercises?.[ex.key] ?? false;
+            return (
+              <div
+                key={ex.key}
+                className="card-glow p-4 flex items-center gap-4 cursor-pointer transition-all"
+                style={{
+                  borderColor: done ? 'rgba(29,158,117,0.5)' : 'var(--border)',
+                  background: done ? 'rgba(29,158,117,0.05)' : 'var(--bg2)',
+                }}
+                onClick={() => toggleEx(ex.key)}
+              >
+                {/* Checkbox */}
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
+                  style={{
+                    background: done ? 'var(--teal)' : 'transparent',
+                    border: `1.5px solid ${done ? 'var(--teal)' : 'var(--border-strong)'}`,
+                  }}
+                >
+                  {done && <CheckCircle size={14} color="#fff" />}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium" style={{ color: done ? '#5DCAA5' : 'var(--text)' }}>{ex.name}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{ex.sets}</p>
+                </div>
+
+                {/* Tutorial button */}
+                <button
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs transition-all flex-shrink-0"
+                  style={{ background: 'var(--bg3)', border: '1px solid var(--border)', color: 'var(--teal)' }}
+                  onClick={e => { e.stopPropagation(); setModalEx(ex.key); }}
+                >
+                  How to <ChevronRight size={11} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Pain scale */}
+        <p className="mono text-xs mb-3" style={{ color: 'var(--text-dim)', letterSpacing: '0.08em' }}>PAIN LEVEL AFTER SESSION</p>
+        <div className="flex gap-1.5 flex-wrap mb-6">
+          {Array.from({ length: 11 }, (_, i) => {
+            const isSelected = selectedPain === i;
+            const color = i <= 2 ? '#1D9E75' : i <= 5 ? '#EF9F27' : '#E24B4A';
+            return (
+              <button
+                key={i}
+                onClick={() => setPain(i)}
+                className="w-9 h-9 rounded-lg mono text-sm font-medium transition-all"
+                style={{
+                  background: isSelected ? color + '30' : 'var(--bg2)',
+                  border: `1px solid ${isSelected ? color : 'var(--border)'}`,
+                  color: isSelected ? color : 'var(--text-muted)',
+                }}
+              >
+                {i}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Notes */}
+        <p className="mono text-xs mb-2" style={{ color: 'var(--text-dim)', letterSpacing: '0.08em' }}>SESSION NOTES</p>
+        <textarea
+          className="w-full rounded-xl p-3 text-sm mb-6 resize-none"
+          style={{
+            background: 'var(--bg2)',
+            border: '1px solid var(--border)',
+            color: 'var(--text)',
+            fontFamily: 'DM Sans, sans-serif',
+            minHeight: 80,
+            outline: 'none',
+          }}
+          placeholder="Any swelling, tightness, clicking, or how it felt..."
+          value={note}
+          onChange={e => setNote(e.target.value)}
+        />
+
+        {/* Actions */}
+        <div className="flex gap-3">
+          <button
+            className="btn-primary flex-1 flex items-center justify-center gap-2"
+            onClick={completeDay}
+            disabled={currentDayData.status === 'done'}
+            style={{ opacity: currentDayData.status === 'done' ? 0.5 : 1 }}
+          >
+            <CheckCircle size={16} />
+            {currentDayData.status === 'done' ? 'Day completed' : 'Mark complete'}
+          </button>
+          <button
+            className="btn-ghost flex items-center gap-2"
+            onClick={skipDay}
+            disabled={currentDayData.status === 'done'}
+          >
+            <SkipForward size={15} />
+            Skip
+          </button>
+        </div>
+
+        <p className="text-center text-xs mt-8" style={{ color: 'var(--text-dim)' }}>
+          Data saved locally in your browser. Clear cache = reset tracker.
+        </p>
       </div>
     </div>
   );
