@@ -8,6 +8,8 @@ import {
 import ExerciseModal from '@/components/ExerciseModal';
 import Report from '@/components/Report';
 import AbsTracker from '@/components/AbsTracker';
+import { getCurrentUser } from '@/lib/auth';
+import LoginButton from '@/components/LoginButton';
 
 
 export default function Home() {
@@ -18,11 +20,24 @@ export default function Home() {
   const [selectedPain, setSelectedPain] = useState<number | null>(null);
   const [note, setNote] = useState('');
   const [activeTab, setActiveTab] = useState<'knee' | 'abs'>('knee');
+  const [user, setUser] = useState<any>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
+  async function init() {
+    const u = await getCurrentUser();
+    setUser(u);
+    setCheckingAuth(false);
+
+    if (!u) return; // stop if not logged in
+
+    // TEMP: still load localStorage for now
     const s = loadState();
     setState(s);
     setHydrated(true);
+    }
+
+  init();
   }, []);
 
   const dk = dayKey(state.currentWeek, state.currentDay);
@@ -108,6 +123,21 @@ export default function Home() {
   const highPain = selectedPain !== null && selectedPain >= 7;
   const modalExercise = modalEx ? EXERCISES.find(e => e.key === modalEx) : null;
 
+  // 🔐 AUTH GATE
+  if (checkingAuth) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+  
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-6">
+        <h1 className="text-2xl font-semibold">Rehab Tracker</h1>
+        <p className="text-sm opacity-70">Sign in to save your progress securely</p>
+        <LoginButton />
+      </div>
+    );    
+  }
+  
   if (!hydrated) return null;
   if (showReport) return <Report state={state} onBack={() => setShowReport(false)} />;
   if (activeTab === 'abs') return (
