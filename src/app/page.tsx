@@ -50,7 +50,7 @@ export default function Home() {
 
   const update = async (newState: AppState) => {
     setState(newState);
-    await saveState(newState);
+    await saveUserState(newState);
   };
 
   const toggleEx = (key: string) => {
