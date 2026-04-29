@@ -29,15 +29,15 @@ export default function Home() {
     setUser(u);
     setCheckingAuth(false);
 
-    if (!u) return; // stop if not logged in
+    if (!u) return;
 
-    // TEMP: still load localStorage for now
     const s = await loadUserState();
     setState(s);
     setHydrated(true);
+  }
 
   init();
-  }, []);
+}, []);
 
   const dk = dayKey(state.currentWeek, state.currentDay);
   const currentDayData: DayData = state.dayData[dk] || {};
