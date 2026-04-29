@@ -1,3 +1,6 @@
+import { supabase } from './supabaseClient'
+import { getCurrentUser } from './auth'
+
 export interface Exercise {
   key: string;
   name: string;
@@ -95,18 +98,48 @@ export const WEEK_GUIDANCE = [
 
 export function dayKey(w: number, d: number) { return `w${w}d${d}`; }
 
-export function loadState(): AppState {
-  if (typeof window === 'undefined') return { currentWeek: 0, currentDay: 0, dayData: {} };
-  try {
-    const saved = localStorage.getItem('kneeRehab_v2');
-    if (saved) return JSON.parse(saved);
-  } catch {}
-  return { currentWeek: 0, currentDay: 0, dayData: {} };
+// Default empty state (same as before)
+const EMPTY_STATE: AppState = {
+  currentWeek: 0,
+  currentDay: 0,
+  dayData: {}
 }
 
-export function saveState(state: AppState) {
-  if (typeof window === 'undefined') return;
-  try { localStorage.setItem('kneeRehab_v2', JSON.stringify(state)); } catch {}
+// LOAD state from Supabase
+export async function loadUserState(): Promise<AppState> {
+  const user = await getCurrentUser()
+  if (!user) throw new Error("User not logged in")
+
+  const { data, error } = await supabase
+    .from('user_app_state')
+    .select('state')
+    .eq('user_id', user.id)
+    .single()
+
+  // First login → create empty state automatically
+  if (error || !data) {
+    await supabase.from('user_app_state').insert({
+      user_id: user.id,
+      state: EMPTY_STATE
+    })
+    return EMPTY_STATE
+  }
+
+  return data.state as AppState
+}
+
+// SAVE state to Supabase
+export async function saveUserState(state: AppState) {
+  const user = await getCurrentUser()
+  if (!user) return
+
+  await supabase
+    .from('user_app_state')
+    .upsert({
+      user_id: user.id,
+      state: state,
+      updated_at: new Date().toISOString()
+    })
 }
 
 export function calcStats(dayData: Record<string, DayData>) {
