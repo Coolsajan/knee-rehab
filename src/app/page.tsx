@@ -40,8 +40,8 @@ export default function Home() {
 }, []);
 
   const dk = dayKey(state.currentWeek, state.currentDay);
-  const currentDayData: DayData = state.dayData[dk] || {};
-
+  const currentDayData: DayData = (state.dayData[dk] ?? {}) as DayData;
+  
   useEffect(() => {
     if (!hydrated) return;
     setSelectedPain(currentDayData.pain ?? null);
