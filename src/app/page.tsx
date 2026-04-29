@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { AlertTriangle, Info, BarChart2, CheckCircle, SkipForward, ChevronRight } from 'lucide-react';
 import {
   EXERCISES, WEEK_GUIDANCE, AppState, DayData,
-  loadState, saveState, calcStats, dayKey,
+  loadUserState, saveUserState, calcStats, dayKey,
 } from '@/lib/data';
 import ExerciseModal from '@/components/ExerciseModal';
 import Report from '@/components/Report';
@@ -32,10 +32,9 @@ export default function Home() {
     if (!u) return; // stop if not logged in
 
     // TEMP: still load localStorage for now
-    const s = loadState();
+    const s = await loadUserState();
     setState(s);
     setHydrated(true);
-    }
 
   init();
   }, []);
@@ -49,9 +48,9 @@ export default function Home() {
     setNote(currentDayData.note ?? '');
   }, [state.currentWeek, state.currentDay, hydrated]);
 
-  const update = (newState: AppState) => {
+  const update = async (newState: AppState) => {
     setState(newState);
-    saveState(newState);
+    await saveState(newState);
   };
 
   const toggleEx = (key: string) => {
@@ -395,7 +394,6 @@ export default function Home() {
         </div>
 
         <p className="text-center text-xs mt-8" style={{ color: 'var(--text-dim)' }}>
-          Data saved locally in your browser. Clear cache = reset tracker.
         </p>
       </div>
     </div>
