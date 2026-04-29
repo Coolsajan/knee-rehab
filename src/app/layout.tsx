@@ -5,9 +5,9 @@ export const metadata: Metadata = {
   title: 'Knee Rehab Tracker — Hemophilia A Protocol',
   description: '4-week right knee stabilization rehab tracker',
     icons: {
-    icon: 'favicon_io/favicon.ico',
-    shortcut: 'favicon_io/favicon.ico',
-    apple: 'favicon_io/apple-touch-icon.png',
+    icon: '/favicon_io/favicon.ico',
+    shortcut: '/favicon_io/favicon.ico',
+    apple: '/favicon_io/apple-touch-icon.png',
   },
 };
 
