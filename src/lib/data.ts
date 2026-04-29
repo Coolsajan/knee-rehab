@@ -29,7 +29,7 @@ export const EXERCISES: Exercise[] = [
     name: 'Straight leg raises',
     sets: '3 × 15 each leg',
     detail: 'Lie flat on your back. Bend the left knee, keep right leg straight. Raise it to 45°, hold 2 seconds, lower slowly over 3 seconds. Switch legs.',
-    gifUrl: 'https://www.inspireusafoundation.org/wp-content/uploads/2022/08/straight-leg-raise.gif',
+    gifUrl: 'https://pin.it/6UJvXnrn0',
     gifCredit: 'Straight Leg Raise — quad activation without knee bend',
     warning: undefined,
   },
