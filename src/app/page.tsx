@@ -130,7 +130,7 @@ export default function Home() {
   if (!user) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-6">
-        <h1 className="text-2xl font-semibold">Rehab Tracker</h1>
+        <h1 className="text-2xl font-semibold">Well-Come Forks Happy Training..😊+💪</h1>
         <p className="text-sm opacity-70">Sign in to save your progress securely</p>
         <LoginButton />
       </div>
