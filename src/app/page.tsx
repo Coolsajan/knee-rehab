@@ -1,9 +1,10 @@
 'use client';
+import { supabase } from '@/lib/supabaseClient';
 import { useState, useEffect } from 'react';
 import { AlertTriangle, Info, BarChart2, CheckCircle, SkipForward, ChevronRight } from 'lucide-react';
 import {
   EXERCISES, WEEK_GUIDANCE, AppState, DayData,
-  loadUserState, saveUserState, calcStats, dayKey,
+  loadState, saveDayToDB, calcStats, dayKey,
 } from '@/lib/data';
 import ExerciseModal from '@/components/ExerciseModal';
 import Report from '@/components/Report';
@@ -23,21 +24,21 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
-  useEffect(() => {
+useEffect(() => {
   async function init() {
-    const u = await getCurrentUser();
-    setUser(u);
-    setCheckingAuth(false);
+    const { data: { user } } = await supabase.auth.getUser()
+    setUser(user)
+    setCheckingAuth(false)
 
-    if (!u) return;
+    if (!user) return
 
-    const s = await loadUserState();
-    setState(s);
-    setHydrated(true);
+    const s = await loadState()
+    setState(s)
+    setHydrated(true)
   }
 
-  init();
-}, []);
+  init()
+}, [])
 
   const dk = dayKey(state.currentWeek, state.currentDay);
   const currentDayData: DayData = (state.dayData[dk] ?? {}) as DayData;
@@ -47,11 +48,6 @@ export default function Home() {
     setSelectedPain(currentDayData.pain ?? null);
     setNote(currentDayData.note ?? '');
   }, [state.currentWeek, state.currentDay, hydrated]);
-
-  const update = async (newState: AppState) => {
-    setState(newState);
-    await saveUserState(newState);
-  };
 
   const toggleEx = (key: string) => {
     const updated = {
@@ -67,7 +63,8 @@ export default function Home() {
         },
       },
     };
-    update(updated);
+    setState(updated);
+    saveDayToDB(state.currentWeek, state.currentDay, updated.dayData[dk]);
   };
 
   const setPain = (val: number) => {
@@ -79,7 +76,8 @@ export default function Home() {
         [dk]: { ...currentDayData, pain: val },
       },
     };
-    update(updated);
+    setState(updated);
+    saveDayToDB(state.currentWeek, state.currentDay, updated.dayData[dk]);
   };
 
   const completeDay = () => {
@@ -99,7 +97,8 @@ export default function Home() {
       currentDay: nextDay,
       dayData: { ...state.dayData, [dk]: newDayData },
     };
-    update(updated);
+    setState(updated);
+    saveDayToDB(state.currentWeek, state.currentDay, newDayData);
     setSelectedPain(null);
     setNote('');
   };
@@ -112,7 +111,8 @@ export default function Home() {
       currentDay: nextDay,
       dayData: { ...state.dayData, [dk]: newDayData },
     };
-    update(updated);
+    setState(updated);
+    saveDayToDB(state.currentWeek, state.currentDay, newDayData);
     setNote('');
   };
 
@@ -231,7 +231,7 @@ export default function Home() {
             return (
               <button
                 key={w}
-                onClick={() => update({ ...state, currentWeek: w, currentDay: 0 })}
+                onClick={() => setState({ ...state, currentWeek: w, currentDay: 0 })}
                 className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
                 style={{
                   background: isActive ? 'rgba(29,158,117,0.15)' : 'var(--bg2)',
@@ -263,7 +263,7 @@ export default function Home() {
             return (
               <button
                 key={d}
-                onClick={() => update({ ...state, currentDay: d })}
+                onClick={() => setState({ ...state, currentDay: d })}
                 className="w-10 h-10 rounded-lg text-xs font-medium mono transition-all"
                 style={{
                   background: isActive ? 'var(--teal)' : data?.status === 'done' ? 'rgba(29,158,117,0.15)' : data?.status === 'skip' ? 'var(--bg3)' : 'var(--bg2)',
