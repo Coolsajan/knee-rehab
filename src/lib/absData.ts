@@ -1,3 +1,5 @@
+import { supabase } from './supabaseClient'
+
 export interface AbsExercise {
   key: string;
   name: string;
@@ -226,20 +228,67 @@ export function getExercisesForWeek(week: number): AbsExercise[] {
 
 export function absKey(w: number, d: number) { return `abs_w${w}d${d}`; }
 
-export function loadAbsState(): AbsState {
-  if (typeof window === 'undefined') return { currentWeek: 0, currentDay: 0, dayData: {} };
-  try {
-    const saved = localStorage.getItem('absTracker_v1');
-    if (saved) return JSON.parse(saved);
-  } catch {}
-  return { currentWeek: 0, currentDay: 0, dayData: {} };
+export async function loadAbsState(): Promise<AbsState> {
+  const { data: userData } = await supabase.auth.getUser()
+  const user = userData.user
+
+  if (!user) return { currentWeek: 0, currentDay: 0, dayData: {} }
+
+  const { data, error } = await supabase
+    .from('abs_sessions')
+    .select('*')
+    .eq('user_id', user.id)
+
+  if (error || !data) {
+    console.error(error)
+    return { currentWeek: 0, currentDay: 0, dayData: {} }
+  }
+
+  const dayData: Record<string, AbsDayData> = {}
+
+  data.forEach((row: any) => {
+    const key = absKey(row.week, row.day)
+    dayData[key] = {
+      status: row.status,
+      exercises: row.exercises,
+      note: row.note,
+      completedAt: row.completed_at
+    }
+  })
+
+  return {
+    currentWeek: 0,
+    currentDay: 0,
+    dayData
+  }
 }
 
-export function saveAbsState(state: AbsState) {
-  if (typeof window === 'undefined') return;
-  try { localStorage.setItem('absTracker_v1', JSON.stringify(state)); } catch {}
-}
+export async function saveAbsState(state: AbsState) {
+  const { data: userData } = await supabase.auth.getUser()
+  const user = userData.user
+  if (!user) return
 
+  const entries = Object.entries(state.dayData)
+
+  for (const [key, value] of entries) {
+    const match = key.match(/abs_w(\d+)d(\d+)/)
+    if (!match) continue
+
+    const week = Number(match[1])
+    const day = Number(match[2])
+
+    await supabase.from('abs_sessions').upsert({
+      user_id: user.id,
+      week,
+      day,
+      status: value.status,
+      exercises: value.exercises ?? {},
+      note: value.note ?? null,
+      completed_at: value.completedAt ?? null,
+      updated_at: new Date().toISOString()
+    })
+  }
+}
 export function calcAbsStats(dayData: Record<string, AbsDayData>) {
   let totalDone = 0;
   const totalDays = 16 * 7; // 16 weeks
