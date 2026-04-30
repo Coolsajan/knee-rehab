@@ -99,7 +99,7 @@ export function dayKey(w: number, d: number) { return `w${w}d${d}`; }
 
 export async function loadState(): Promise<AppState> {
   const { data: { user } } = await supabase.auth.getUser()
-
+  console.log("SESSION USER:", session?.user?.id)
   if (!user) return { currentWeek: 0, currentDay: 0, dayData: {} }
 
   const { data, error } = await supabase
