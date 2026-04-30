@@ -1,5 +1,4 @@
 import { supabase } from './supabaseClient';
-import { saveAbsDayToDB } from '@/lib/absData';
 
 export interface AbsExercise {
   key: string;
@@ -264,31 +263,24 @@ export async function loadAbsState(): Promise<AbsState> {
   }
 }
 
-export async function saveAbsState(state: AbsState) {
-  const { data: userData } = await supabase.auth.getUser()
-  const user = userData.user
-  if (!user) return
+export async function saveAbsDayToDB(
+  week: number,
+  day: number,
+  data: AbsDayData
+) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
 
-  const entries = Object.entries(state.dayData)
-
-  for (const [key, value] of entries) {
-    const match = key.match(/abs_w(\d+)d(\d+)/)
-    if (!match) continue
-
-    const week = Number(match[1])
-    const day = Number(match[2])
-
-    await supabase.from('abs_sessions').upsert({
-      user_id: user.id,
-      week,
-      day,
-      status: value.status,
-      exercises: value.exercises ?? {},
-      note: value.note ?? null,
-      completed_at: value.completedAt ?? null,
-      updated_at: new Date().toISOString()
-    })
-  }
+  await supabase.from('abs_sessions').upsert({
+    user_id: user.id,
+    week,
+    day,
+    status: data.status,
+    exercises: data.exercises || {},
+    note: data.note || '',
+    completed_at: data.completedAt || null,
+  });
+  
 }
 export function calcAbsStats(dayData: Record<string, AbsDayData>) {
   let totalDone = 0;
