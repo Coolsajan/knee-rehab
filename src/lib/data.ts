@@ -99,8 +99,10 @@ export function dayKey(w: number, d: number) { return `w${w}d${d}`; }
 
 export async function loadState(): Promise<AppState> {
   const { data: { user } } = await supabase.auth.getUser()
-  console.log("SESSION USER:", session?.user?.id)
-  if (!user) return { currentWeek: 0, currentDay: 0, dayData: {} }
+
+  if (!user) {
+    return { currentWeek: 0, currentDay: 0, dayData: {} }
+  }
 
   const { data, error } = await supabase
     .from('knee_sessions')
@@ -114,7 +116,7 @@ export async function loadState(): Promise<AppState> {
   const dayData: Record<string, DayData> = {}
 
   data.forEach((row: any) => {
-    const key = dayKey(row.week, row.day)
+    const key = `${row.week}-${row.day}`
     dayData[key] = {
       status: row.status,
       exercises: row.exercises,
@@ -131,7 +133,26 @@ export async function loadState(): Promise<AppState> {
   }
 }
 
+export async function saveDayToDB(
+  week: number,
+  day: number,
+  dayData: DayData
+) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
 
+  await supabase.from('knee_sessions').upsert({
+    user_id: user.id,
+    week,
+    day,
+    status: dayData.status,
+    exercises: dayData.exercises,
+    pain: dayData.pain,
+    note: dayData.note,
+    completed_at: dayData.completedAt,
+    updated_at: new Date().toISOString(),
+  })
+}
 export function calcStats(dayData: Record<string, DayData>) {
   let totalDone = 0;
   let streak = 0;
