@@ -1,4 +1,5 @@
-import { supabase } from './supabaseClient'
+import { supabase } from './supabaseClient';
+import { saveAbsDayToDB } from '@/lib/absData';
 
 export interface AbsExercise {
   key: string;
