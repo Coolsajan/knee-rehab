@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, SkipForward, ChevronRight, Info } from 'lucide-react';
 import {
-  AbsState, AbsDayData, loadAbsState, saveAbsState,
+  AbsState, AbsDayData, loadAbsState, saveAbsDayToDB,
   getExercisesForWeek, getPhaseForWeek, absKey, calcAbsStats,
   ABS_PHASES,
 } from '@/lib/absData';
@@ -20,10 +20,14 @@ export default function AbsTracker() {
   const [modalEx, setModalEx] = useState<AbsExercise | null>(null);
   const [note, setNote] = useState('');
 
-  useEffect(() => {
-    setState(loadAbsState());
+useEffect(() => {
+  async function init() {
+    const dbState = await loadAbsState();
+    setState(dbState);
     setHydrated(true);
-  }, []);
+  }
+  init();
+}, []);
 
   const dk = absKey(state.currentWeek, state.currentDay);
   const currentDayData: AbsDayData = state.dayData[dk] || {};
@@ -35,8 +39,15 @@ export default function AbsTracker() {
     setNote(currentDayData.note ?? '');
   }, [state.currentWeek, state.currentDay, hydrated]);
 
-  const update = (s: AbsState) => { setState(s); saveAbsState(s); };
+const update = async (s: AbsState) => {
+  setState(s);
 
+  const dk = absKey(s.currentWeek, s.currentDay);
+  const dayData = s.dayData[dk];
+  if (!dayData) return;
+
+  await saveAbsDayToDB(s.currentWeek, s.currentDay, dayData);
+};
   const toggleEx = (key: string) => {
     update({
       ...state,
