@@ -101,17 +101,45 @@ export async function loadState(): Promise<AppState> {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
+    console.log("No user found");
     return { currentWeek: 0, currentDay: 0, dayData: {} }
   }
+
+  console.log("Loading sessions for user:", user.id)
 
   const { data, error } = await supabase
     .from('knee_sessions')
     .select('*')
     .eq('user_id', user.id)
 
-  if (error || !data) {
+  if (error) {
+    console.error("DB LOAD ERROR:", error)
     return { currentWeek: 0, currentDay: 0, dayData: {} }
   }
+
+  console.log("DB rows:", data)
+
+  const dayData: Record<string, DayData> = {}
+
+  data.forEach((row: any) => {
+    // ✅ FIXED KEY FORMAT
+    const key = `w${row.week}d${row.day}`
+
+    dayData[key] = {
+      status: row.status,
+      exercises: row.exercises,
+      pain: row.pain,
+      note: row.note,
+      completedAt: row.completed_at,
+    }
+  })
+
+  return {
+    currentWeek: 0,
+    currentDay: 0,
+    dayData,
+  }
+}
 
   const dayData: Record<string, DayData> = {}
 
@@ -141,18 +169,32 @@ export async function saveDayToDB(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
-  await supabase.from('knee_sessions').upsert({
-    user_id: user.id,
-    week,
-    day,
-    status: dayData.status,
-    exercises: dayData.exercises,
-    pain: dayData.pain,
-    note: dayData.note,
-    completed_at: dayData.completedAt,
-    updated_at: new Date().toISOString(),
-  })
+  console.log("Saving day:", week, day, dayData)
+
+  const { error } = await supabase
+    .from('knee_sessions')
+    .upsert({
+      user_id: user.id,
+      week,
+      day,
+      status: dayData.status,
+      exercises: dayData.exercises,
+      pain: dayData.pain,
+      note: dayData.note,
+      completed_at: dayData.completedAt,
+      updated_at: new Date().toISOString(),
+    }, {
+      // ✅ CRITICAL FIX
+      onConflict: 'user_id,week,day'
+    })
+
+  if (error) {
+    console.error("DB SAVE ERROR:", error)
+  } else {
+    console.log("Saved successfully")
+  }
 }
+
 export function calcStats(dayData: Record<string, DayData>) {
   let totalDone = 0;
   let streak = 0;
